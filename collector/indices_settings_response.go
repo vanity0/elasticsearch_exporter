@@ -28,9 +28,8 @@ type Settings struct {
 
 // IndexInfo defines the blocks of the current index
 type IndexInfo struct {
-	Blocks           Blocks  `json:"blocks"`
-	Mapping          Mapping `json:"mapping"`
-	NumberOfReplicas string  `json:"number_of_replicas"`
+	Blocks  Blocks  `json:"blocks"`
+	Mapping Mapping `json:"mapping"`
 }
 
 // Blocks defines whether current index has read_only_allow_delete enabled

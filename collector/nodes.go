@@ -16,7 +16,7 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -29,18 +29,10 @@ import (
 func getRoles(node NodeStatsNodeResponse) map[string]bool {
 	// default settings (2.x) and map, which roles to consider
 	roles := map[string]bool{
-		"master":                false,
-		"data":                  false,
-		"data_hot":              false,
-		"data_warm":             false,
-		"data_cold":             false,
-		"data_frozen":           false,
-		"data_content":          false,
-		"ml":                    false,
-		"remote_cluster_client": false,
-		"transform":             false,
-		"ingest":                false,
-		"client":                true,
+		"master": false,
+		"data":   false,
+		"ingest": false,
+		"client": true,
 	}
 	// assumption: a 5.x node has at least one role, otherwise it's a 1.7 or 2.x node
 	if len(node.Roles) > 0 {
@@ -1826,7 +1818,7 @@ func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			level.Warn(c.logger).Log(
+			_ = level.Warn(c.logger).Log(
 				"msg", "failed to close http.Client",
 				"err", err,
 			)
@@ -1837,7 +1829,7 @@ func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
 		return nsr, fmt.Errorf("HTTP Request failed with code %d", res.StatusCode)
 	}
 
-	bts, err := io.ReadAll(res.Body)
+	bts, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		c.jsonParseFailures.Inc()
 		return nsr, err
@@ -1862,7 +1854,7 @@ func (c *Nodes) Collect(ch chan<- prometheus.Metric) {
 	nodeStatsResp, err := c.fetchAndDecodeNodeStats()
 	if err != nil {
 		c.up.Set(0)
-		level.Warn(c.logger).Log(
+		_ = level.Warn(c.logger).Log(
 			"msg", "failed to fetch and decode node stats",
 			"err", err,
 		)
@@ -1874,8 +1866,8 @@ func (c *Nodes) Collect(ch chan<- prometheus.Metric) {
 		// Handle the node labels metric
 		roles := getRoles(node)
 
-		for role, roleEnabled := range roles {
-			if roleEnabled {
+		for _, role := range []string{"master", "data", "client", "ingest"} {
+			if roles[role] {
 				metric := createRoleMetric(role)
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
